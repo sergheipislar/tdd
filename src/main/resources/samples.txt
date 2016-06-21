@@ -1,5 +1,11 @@
 {
     "firstName": "Ion",
     "lastName": "Popescu",
-    "email": "bade@email"
+    "email": "bad@email"
+}
+
+{
+    "firstName": "Andrei",
+    "lastName": "Ionescu",
+    "email": "good@email.com"
 }
