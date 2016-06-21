@@ -5,9 +5,7 @@
  */
 package com.frequentis.tdd;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
+import com.frequentis.tdd.data.Users;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +23,10 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -66,7 +68,7 @@ public class TddIntegrationTest {
     @Test
     public void insert_jsonUser_respondsWithNewlyCreatedUser() throws Exception {
         // Given
-        User user = new User("firstName", "lastName", "email");
+        User user = Users.random();
         String userJson = json(user);
 
         // When
@@ -74,10 +76,10 @@ public class TddIntegrationTest {
 
         // Then
         User actualUser = fromJson(mvcResult.getResponse().getContentAsString());
-        assertThat("Expected first name to match", user.getFirstName(), equalTo(actualUser.getFirstName()));
-        assertThat("Expected last name to match", user.getLastName(), equalTo(actualUser.getLastName()));
-        assertThat("Expected email to match", user.getEmail(), equalTo(actualUser.getEmail()));
-        assertThat("Expected id to be set", user.getId(), not(equalTo(0L)));
+        assertThat("Expected first name to match", actualUser.getFirstName(), equalTo(user.getFirstName()));
+        assertThat("Expected last name to match", actualUser.getLastName(), equalTo(user.getLastName()));
+        assertThat("Expected email to match", actualUser.getEmail(), equalTo(user.getEmail()));
+        assertThat("Expected id to be set", actualUser.getId(), not(equalTo(0L)));
     }
 
     protected String json(Object o) throws IOException {
