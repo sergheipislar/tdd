@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.frequentis.tdd.data.Users;
+import com.frequentis.tdd.exceptions.EmailAlreadyUsedException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -51,5 +52,18 @@ public class UserControllerTest {
 
         // Then
         assertThat("Expected user to match", actualUser, equalTo(dbUser));
+    }
+
+    @Test(expected = EmailAlreadyUsedException.class)
+    public void create_userWithAlreadyUsedEmail_throwsEmailAlreadyUsed(){
+        // Given
+        User user = Users.random();
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Users.randomWithId());
+
+        // When
+        sut.create(user);
+
+        // Then
+        // throws exception
     }
 }
