@@ -46,7 +46,7 @@ public class UserControllerTest {
     public void create_userWithAlreadyUsedEmail_throwsEmailAlreadyUsedException(){
         // Given
         User user = Users.random();
-        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(Users.randomWithId()));
 
         // When
         sut.create(user);
@@ -128,6 +128,20 @@ public class UserControllerTest {
         // exception is thrown
     }
 
+    @Test(expected = EmailAlreadyUsedException.class)
+    public void update_withAlreadyExistingEmailAndUserPresent_throwsEmailAlreadyUsed(){
+        // Given
+        User user = prepareUserInRepository();
+        User userForUpdate = prepareUserInRepository();
+        userForUpdate.setEmail(user.getEmail());
+
+        // When
+        sut.update(userForUpdate);
+
+        // Then
+        // throws exception
+    }
+
     @Test
     public void delete_userPresent_deleteUserFromRepository(){
         // Given
@@ -164,6 +178,7 @@ public class UserControllerTest {
         when(userRepository.exists(user.getId())).thenReturn(true);
         when(userRepository.findOne(user.getId())).thenReturn(user);
         when(userRepository.save(user)).thenReturn(user);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
         return user;
     }
 

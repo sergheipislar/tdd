@@ -31,8 +31,7 @@ public class UserController {
     @RequestMapping(value = "/", method = RequestMethod.POST)
     @ResponseBody
     public User create(@RequestBody User user) {
-        Optional<User> dbUser = userRepository.findByEmail(user.getEmail());
-        if (!dbUser.isPresent()) {
+        if (! isEmailAlreadyUsedByOtherUser(user)) {
             return userRepository.save(user);
         } else {
             throw new EmailAlreadyUsedException();
@@ -54,11 +53,20 @@ public class UserController {
     @RequestMapping(value = "/", method = RequestMethod.PUT)
     @ResponseBody
     public User update(@RequestBody User user) {
-        if (!userRepository.exists(user.getId())) {
-            throw new UserNotFoundException();
+        if (userRepository.exists(user.getId())) {
+            if (! isEmailAlreadyUsedByOtherUser(user)) {
+                return userRepository.save(user);
+            } else {
+                throw new EmailAlreadyUsedException();
+            }
         } else {
-            return userRepository.save(user);
+            throw new UserNotFoundException();
         }
+    }
+
+    private boolean isEmailAlreadyUsedByOtherUser(final User user) {
+        Optional<User> dbUser = userRepository.findByEmail(user.getEmail());
+        return dbUser.isPresent() && dbUser.get().getId() != user.getId();
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
