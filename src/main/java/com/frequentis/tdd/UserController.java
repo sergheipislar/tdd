@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.frequentis.tdd.exceptions.EmailAlreadyUsedException;
 import com.frequentis.tdd.exceptions.UserNotFoundException;
 
 @RestController
@@ -26,7 +27,12 @@ public class UserController {
     @RequestMapping(value = "/", method = RequestMethod.POST)
     @ResponseBody
     public User create(@RequestBody User user) {
-        return userRepository.save(user);
+        User dbUser = userRepository.findByEmail(user.getEmail());
+        if (dbUser==null){
+            return userRepository.save(user);
+        } else {
+            throw new EmailAlreadyUsedException();
+        }
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.GET)
