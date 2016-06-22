@@ -7,6 +7,7 @@ package com.frequentis.tdd;
 
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.frequentis.tdd.exceptions.EmailAlreadyUsedException;
+import com.frequentis.tdd.exceptions.InvalidEmailException;
 import com.frequentis.tdd.exceptions.UserNotFoundException;
 
 @RestController
@@ -31,10 +33,14 @@ public class UserController {
     @RequestMapping(value = "/", method = RequestMethod.POST)
     @ResponseBody
     public User create(@RequestBody User user) {
-        if (! isEmailAlreadyUsedByOtherUser(user)) {
-            return userRepository.save(user);
+        if (isValidEmail(user)){
+            if (! isEmailAlreadyUsedByOtherUser(user)) {
+                return userRepository.save(user);
+            } else {
+                throw new EmailAlreadyUsedException();
+            }
         } else {
-            throw new EmailAlreadyUsedException();
+            throw new InvalidEmailException();
         }
     }
 
@@ -53,20 +59,19 @@ public class UserController {
     @RequestMapping(value = "/", method = RequestMethod.PUT)
     @ResponseBody
     public User update(@RequestBody User user) {
-        if (userRepository.exists(user.getId())) {
-            if (! isEmailAlreadyUsedByOtherUser(user)) {
-                return userRepository.save(user);
+        if (isValidEmail(user)){
+            if (userRepository.exists(user.getId())) {
+                if (! isEmailAlreadyUsedByOtherUser(user)) {
+                    return userRepository.save(user);
+                } else {
+                    throw new EmailAlreadyUsedException();
+                }
             } else {
-                throw new EmailAlreadyUsedException();
+                throw new UserNotFoundException();
             }
         } else {
-            throw new UserNotFoundException();
+            throw new InvalidEmailException();
         }
-    }
-
-    private boolean isEmailAlreadyUsedByOtherUser(final User user) {
-        Optional<User> dbUser = userRepository.findByEmail(user.getEmail());
-        return dbUser.isPresent() && dbUser.get().getId() != user.getId();
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
@@ -77,5 +82,14 @@ public class UserController {
         } else {
             throw new UserNotFoundException();
         }
+    }
+
+    private boolean isEmailAlreadyUsedByOtherUser(final User user) {
+        Optional<User> dbUser = userRepository.findByEmail(user.getEmail());
+        return dbUser.isPresent() && dbUser.get().getId() != user.getId();
+    }
+
+    private boolean isValidEmail(final @RequestBody User user) {
+        return EmailValidator.getInstance().isValid(user.getEmail());
     }
 }

@@ -3,13 +3,18 @@ package com.frequentis.tdd;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Optional;
+import junitparams.JUnitParamsRunner;
+import junitparams.Parameters;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import com.frequentis.tdd.data.Users;
 import com.frequentis.tdd.exceptions.EmailAlreadyUsedException;
+import com.frequentis.tdd.exceptions.InvalidEmailException;
 import com.frequentis.tdd.exceptions.UserNotFoundException;
 
+import static junitparams.JUnitParamsRunner.$;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -19,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@RunWith(JUnitParamsRunner.class)
 public class UserControllerTest {
     private UserController sut;
     private UserRepository userRepository;
@@ -47,6 +53,20 @@ public class UserControllerTest {
         // Given
         User user = Users.random();
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(Users.randomWithId()));
+
+        // When
+        sut.create(user);
+
+        // Then
+        // throws exception
+    }
+
+    @Test(expected = InvalidEmailException.class)
+    @Parameters(method = "invalidEmailAddresses")
+    public void create_userWithInvalidEmail_throwsInvalidEmailException(final String invalidEmail){
+        // Given
+        User user = Users.random();
+        user.setEmail(invalidEmail);
 
         // When
         sut.create(user);
@@ -128,6 +148,20 @@ public class UserControllerTest {
         // exception is thrown
     }
 
+    @Test(expected = InvalidEmailException.class)
+    @Parameters(method = "invalidEmailAddresses")
+    public void update_userWithInvalidEmail_throwsInvalidEmailException(final String invalidEmail){
+        // Given
+        User user = Users.random();
+        user.setEmail(invalidEmail);
+
+        // When
+        sut.update(user);
+
+        // Then
+        // throws exception
+    }
+
     @Test(expected = EmailAlreadyUsedException.class)
     public void update_withAlreadyExistingEmailAndUserPresent_throwsEmailAlreadyUsed(){
         // Given
@@ -164,6 +198,10 @@ public class UserControllerTest {
 
         // Then
         // throws exception
+    }
+
+    private Object[] invalidEmailAddresses(){
+        return $("1234", "me", "1234@", "me@", "me@.com.my", "me@%*.com", "me..2002@gmail.com", "me.@gmail.com");
     }
 
     private void assertThatAllUsersMatch(final List<User> users, final List<User> actualUsers) {
