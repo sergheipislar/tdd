@@ -5,11 +5,15 @@
  */
 package com.frequentis.tdd;
 
-import com.google.common.collect.Lists;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.frequentis.tdd.exceptions.EmailAlreadyUsedException;
 import com.frequentis.tdd.exceptions.UserNotFoundException;
@@ -27,8 +31,8 @@ public class UserController {
     @RequestMapping(value = "/", method = RequestMethod.POST)
     @ResponseBody
     public User create(@RequestBody User user) {
-        User dbUser = userRepository.findByEmail(user.getEmail());
-        if (dbUser==null){
+        Optional<User> dbUser = userRepository.findByEmail(user.getEmail());
+        if (!dbUser.isPresent()) {
             return userRepository.save(user);
         } else {
             throw new EmailAlreadyUsedException();
@@ -38,7 +42,7 @@ public class UserController {
     @RequestMapping(value = "/all", method = RequestMethod.GET)
     @ResponseBody
     public List<User> getAll() {
-        return Lists.newArrayList(userRepository.findAll());
+        return userRepository.findAll();
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
@@ -50,11 +54,11 @@ public class UserController {
     @RequestMapping(value = "/", method = RequestMethod.PUT)
     @ResponseBody
     public User update(@RequestBody User user) {
-        if (! userRepository.exists(user.getId())){
+        if (!userRepository.exists(user.getId())) {
             throw new UserNotFoundException();
+        } else {
+            return userRepository.save(user);
         }
-
-        return userRepository.save(user);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)

@@ -2,6 +2,7 @@ package com.frequentis.tdd;
 
 import com.google.common.collect.Lists;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -12,6 +13,8 @@ import com.frequentis.tdd.exceptions.UserNotFoundException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,6 +26,7 @@ public class UserControllerTest {
     @Before
     public void setUp(){
         userRepository = mock(UserRepository.class);
+        when(userRepository.findByEmail(argThat(instanceOf(String.class)))).thenReturn(Optional.empty());
         sut = new UserController(userRepository);
     }
 
@@ -42,7 +46,7 @@ public class UserControllerTest {
     public void create_userWithAlreadyUsedEmail_throwsEmailAlreadyUsedException(){
         // Given
         User user = Users.random();
-        when(userRepository.findByEmail(user.getEmail())).thenReturn(user);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
         // When
         sut.create(user);
