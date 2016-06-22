@@ -1,16 +1,19 @@
 package com.frequentis.tdd;
 
-import com.frequentis.tdd.data.Users;
 import com.google.common.collect.Lists;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
+import com.frequentis.tdd.data.Users;
+import com.frequentis.tdd.exceptions.UserNotFoundException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class UserControllerTest {
     private UserController sut;
@@ -56,14 +59,94 @@ public class UserControllerTest {
         List<User> actualUsers = sut.getAll();
 
         // Then
-        assertThatAllUsersMatche(users, actualUsers);
+        assertThatAllUsersMatch(users, actualUsers);
     }
 
-    private void assertThatAllUsersMatche(final List<User> users, final List<User> actualUsers) {
+    @Test
+    public void get_userPresent_returnFoundUser(){
+        // Given
+        User user = prepareUserInRepository();
+
+        // When
+        User actualUser = sut.get(user.getId());
+
+        // Then
+        assertThat("Expected user to match", actualUser, equalTo(user));
+    }
+
+    @Test
+    public void update_userPresent_saveUserInRepository(){
+        // Given
+        User user = prepareUserInRepository();
+
+        // When
+        sut.update(user);
+
+        // Then
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    public void update_userPresent_returnUpdatedUser(){
+        // Given
+        User user = prepareUserInRepository();
+
+        // When
+        User actualUser = sut.update(user);
+
+        // Then
+        assertThat("Expected user to match", actualUser, equalTo(user));
+    }
+
+    @Test(expected = UserNotFoundException.class)
+    public void update_userNotPresent_throwUserNotFoundException(){
+        // Given
+        User user = Users.randomWithId();
+
+        // When
+        sut.update(user);
+
+        // Then
+        // exception is thrown
+    }
+
+    @Test
+    public void delete_userPresent_deleteUserFromRepository(){
+        // Given
+        User user = prepareUserInRepository();
+
+        // When
+        sut.delete(user.getId());
+
+        // Then
+        verify(userRepository).delete(user.getId());
+    }
+
+    @Test(expected = UserNotFoundException.class)
+    public void delete_userNotPresent_throwsUserNotFoundException(){
+        // Given
+        User user = Users.randomWithId();
+
+        // When
+        sut.delete(user.getId());
+
+        // Then
+        // throws exception
+    }
+
+    private void assertThatAllUsersMatch(final List<User> users, final List<User> actualUsers) {
         assertThat("Expected all users returned from repository", actualUsers.size(), equalTo(users.size()));
         for (User user : users) {
             assertThat("Expected user returned from repository", actualUsers, hasItem(equalTo(user)));
         }
+    }
+
+    private User prepareUserInRepository() {
+        User user = Users.randomWithId();
+        when(userRepository.exists(user.getId())).thenReturn(true);
+        when(userRepository.findOne(user.getId())).thenReturn(user);
+        when(userRepository.save(user)).thenReturn(user);
+        return user;
     }
 
     private List<User> prepareUsersInRepository() {

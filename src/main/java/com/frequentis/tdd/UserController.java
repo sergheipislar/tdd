@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.frequentis.tdd.exceptions.UserNotFoundException;
+
 @RestController
 @RequestMapping(value = "/user")
 public class UserController {
@@ -31,5 +33,31 @@ public class UserController {
     @ResponseBody
     public List<User> getAll() {
         return Lists.newArrayList(userRepository.findAll());
+    }
+
+    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
+    @ResponseBody
+    public User get(@PathVariable Long id) {
+        return userRepository.findOne(id);
+    }
+
+    @RequestMapping(value = "/", method = RequestMethod.PUT)
+    @ResponseBody
+    public User update(@RequestBody User user) {
+        if (! userRepository.exists(user.getId())){
+            throw new UserNotFoundException();
+        }
+
+        return userRepository.save(user);
+    }
+
+    @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
+    @ResponseBody
+    public void delete(@PathVariable Long id) {
+        if (userRepository.exists(id)) {
+            userRepository.delete(id);
+        } else {
+            throw new UserNotFoundException();
+        }
     }
 }

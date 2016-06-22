@@ -5,7 +5,10 @@
  */
 package com.frequentis.tdd;
 
-import com.frequentis.tdd.data.Users;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,15 +27,18 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.List;
+import com.frequentis.tdd.data.Randoms;
+import com.frequentis.tdd.data.Users;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
@@ -77,9 +83,6 @@ public class TddIntegrationTest {
 
         // Then
         User actualUser = fromJson(mvcResult.getResponse().getContentAsString());
-        assertThat("Expected first name to match", actualUser.getFirstName(), equalTo(user.getFirstName()));
-        assertThat("Expected last name to match", actualUser.getLastName(), equalTo(user.getLastName()));
-        assertThat("Expected email to match", actualUser.getEmail(), equalTo(user.getEmail()));
         assertThat("Expected id to be set", actualUser.getId(), not(equalTo(0L)));
     }
 
@@ -94,6 +97,42 @@ public class TddIntegrationTest {
 
         // Then
         assertThatResponseContainsUsers(mvcResult, user1, user2);
+    }
+
+    @Test
+    public void getOne_userPresent_respondsWithFoundUser() throws Exception {
+        // Given
+        User user = prepareUserInRepository();
+
+        // When
+        MvcResult mvcResult = mockMvc.perform(get("/user/"+user.getId()).contentType(contentType)).andExpect(status().isOk()).andReturn();
+
+        // Then
+        User actualUser = fromJson(mvcResult.getResponse().getContentAsString());
+        assertThat("Expected user to match", actualUser, equalTo(user));
+    }
+
+    @Test
+    public void update_userPresent_respondsWithUpdatedUser() throws Exception {
+        // Given
+        User user = prepareUserInRepository();
+        user.setLastName(Randoms.randomAlphanumeric("lastName_"));
+
+        // When
+        MvcResult mvcResult = mockMvc.perform(put("/user/").contentType(contentType).content(json(user))).andExpect(status().isOk()).andReturn();
+
+        // Then
+        User actualUser = fromJson(mvcResult.getResponse().getContentAsString());
+        assertThat("Expected user to match", actualUser, equalTo(user));
+    }
+
+    @Test
+    public void delete_userPresent_respondsWithOk() throws Exception {
+        // Given
+        User user = prepareUserInRepository();
+
+        // When/Then
+        mockMvc.perform(delete("/user/"+user.getId()).contentType(contentType)).andExpect(status().isOk());
     }
 
     private void assertThatResponseContainsUsers(final MvcResult mvcResult, final User... users) throws IOException {
