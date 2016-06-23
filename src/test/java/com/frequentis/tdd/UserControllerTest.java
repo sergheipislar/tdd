@@ -1,6 +1,7 @@
 package com.frequentis.tdd;
 
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import junitparams.JUnitParamsRunner;
@@ -8,11 +9,15 @@ import junitparams.Parameters;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.frequentis.tdd.data.Randoms;
 import com.frequentis.tdd.data.Users;
 import com.frequentis.tdd.exceptions.EmailAlreadyUsedException;
+import com.frequentis.tdd.exceptions.FileStorageNotPreparedException;
 import com.frequentis.tdd.exceptions.InvalidEmailException;
 import com.frequentis.tdd.exceptions.UserNotFoundException;
+import com.frequentis.tdd.storage.FileStorage;
 
 import static junitparams.JUnitParamsRunner.$;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -28,12 +33,14 @@ import static org.mockito.Mockito.when;
 public class UserControllerTest {
     private UserController sut;
     private UserRepository userRepository;
+    private FileStorage fileStorage;
 
     @Before
     public void setUp(){
         userRepository = mock(UserRepository.class);
+        fileStorage = mock(FileStorage.class);
         when(userRepository.findByEmail(argThat(instanceOf(String.class)))).thenReturn(Optional.empty());
-        sut = new UserController(userRepository);
+        sut = new UserController(userRepository, fileStorage);
     }
 
     @Test
@@ -200,6 +207,31 @@ public class UserControllerTest {
         // throws exception
     }
 
+    @Test(expected = FileStorageNotPreparedException.class)
+    public void uploadImage_fileStorageNotPresent_throwsFileStorageNotPreparedException() throws IOException {
+        // Given
+        when(fileStorage.exists()).thenReturn(false);
+
+        // When
+        sut.uploadImage(createMultipartFile());
+
+        // Then
+        // throws exception
+    }
+
+    @Test
+    public void uploadImage_fileStoragePresent_storesFile() throws IOException {
+        // Given
+        MultipartFile multipartFile = createMultipartFile();
+        when(fileStorage.exists()).thenReturn(true);
+
+        // When
+        sut.uploadImage(multipartFile);
+
+        // Then
+        verify(fileStorage).store(multipartFile.getName(), multipartFile.getBytes());
+    }
+
     private Object[] invalidEmailAddresses(){
         return $("1234", "me", "1234@", "me@", "me@.com.my", "me@%*.com", "me..2002@gmail.com", "me.@gmail.com");
     }
@@ -209,6 +241,14 @@ public class UserControllerTest {
         for (User user : users) {
             assertThat("Expected user returned from repository", actualUsers, hasItem(equalTo(user)));
         }
+    }
+
+
+    private MultipartFile createMultipartFile() throws IOException {
+        MultipartFile multipartFile = mock(MultipartFile.class);
+        when(multipartFile.getName()).thenReturn(Randoms.randomAlphanumeric("fileName_"));
+        when(multipartFile.getBytes()).thenReturn(Randoms.randomAlphanumeric("content").getBytes());
+        return multipartFile;
     }
 
     private User prepareUserInRepository() {
