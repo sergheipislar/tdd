@@ -6,6 +6,7 @@
 package com.frequentis.tdd;
 
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.util.List;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,21 +14,27 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.frequentis.tdd.exceptions.EmailAlreadyUsedException;
+import com.frequentis.tdd.exceptions.FileStorageNotPreparedException;
 import com.frequentis.tdd.exceptions.InvalidEmailException;
 import com.frequentis.tdd.exceptions.UserNotFoundException;
+import com.frequentis.tdd.storage.FileStorage;
 
 @RestController
 @RequestMapping("/user/")
 public class UserController {
     private final UserRepository userRepository;
+    private final FileStorage fileStorage;
 
     @Autowired
-    public UserController(final UserRepository userRepository) {
+    public UserController(final UserRepository userRepository, final FileStorage fileStorage) {
         this.userRepository = userRepository;
+        this.fileStorage = fileStorage;
     }
 
     @RequestMapping(value = "/", method = RequestMethod.POST)
@@ -81,6 +88,15 @@ public class UserController {
             userRepository.delete(id);
         } else {
             throw new UserNotFoundException();
+        }
+    }
+
+    @RequestMapping(value = "/uploadImage", method = RequestMethod.POST)
+    public void uploadImage(final @RequestParam("file") MultipartFile multipartFile) throws IOException {
+        if (fileStorage.exists()){
+            fileStorage.store(multipartFile.getName(), multipartFile.getBytes());
+        } else {
+            throw new FileStorageNotPreparedException();
         }
     }
 

@@ -5,14 +5,19 @@
  */
 package com.frequentis.tdd;
 
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.ConfigFileApplicationContextInitializer;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.http.MediaType;
@@ -20,6 +25,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.http.MockHttpOutputMessage;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,7 +35,10 @@ import org.springframework.web.context.WebApplicationContext;
 import com.frequentis.tdd.data.Randoms;
 import com.frequentis.tdd.data.Users;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.fileUpload;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -39,10 +48,14 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = Application.class, initializers = ConfigFileApplicationContextInitializer.class)
 @WebAppConfiguration
+@TestPropertySource(properties = "com.frequentis.tdd.filePath=D:\\\\tdd_test")
 public class TddIntegrationTest {
     private MediaType contentType = new MediaType(MediaType.APPLICATION_JSON.getType(),
                                                   MediaType.APPLICATION_JSON.getSubtype(),
                                                   Charset.forName("utf8"));
+
+    @Value("${com.frequentis.tdd.filePath}")
+    private String filePath;
 
     private MockMvc mockMvc;
 
@@ -112,6 +125,39 @@ public class TddIntegrationTest {
 
         // When/Then
         mockMvc.perform(delete("/user/" + user.getId()).contentType(contentType)).andExpect(status().isOk());
+    }
+
+    @Test
+    public void upload_image_respondsWithOk() throws Exception {
+        // Given
+        prepareFileStorage();
+
+        InputStream resourceAsStream = getClass().getResourceAsStream("/profile.png");
+        byte[] imageBytes = ByteStreams.toByteArray(resourceAsStream);
+
+        // When / Then
+        mockMvc.perform(fileUpload("/user/uploadImage").file("file", imageBytes)).andExpect(status().isOk());
+        assertThat("Expected file to be stored", Files.newDirectoryStream(Paths.get(filePath)).iterator().hasNext(), equalTo(true));
+
+        clearFileStorage();
+    }
+
+    private void clearFileStorage() throws IOException {
+        Files.newDirectoryStream(Paths.get(filePath)).forEach(
+                file -> {
+                    try {
+                        Files.delete(file);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+        Files.deleteIfExists(Paths.get(filePath));
+    }
+
+    private void prepareFileStorage() throws IOException {
+        if (!Files.exists(Paths.get(filePath))) {
+            Files.createDirectory(Paths.get(filePath));
+        }
     }
 
     private User prepareCreatedUser() throws Exception {
