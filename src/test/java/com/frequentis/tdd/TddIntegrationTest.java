@@ -23,11 +23,16 @@ import org.springframework.mock.http.MockHttpOutputMessage;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.frequentis.tdd.data.Randoms;
 import com.frequentis.tdd.data.Users;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
@@ -62,13 +67,57 @@ public class TddIntegrationTest {
     }
 
     @Test
-    public void insert_jsonUser_respondsWithNewlyCreatedUser() throws Exception {
+    public void insert_jsonUser_respondsWithOk() throws Exception {
         // Given
         User user = Users.random();
         String userJson = json(user);
 
         // When/Then
         mockMvc.perform(post("/user/").contentType(contentType).content(userJson)).andExpect(status().isOk());
+    }
+
+    @Test
+    public void getAll_usersPresent_respondsWithOk() throws Exception {
+        // Given
+        prepareCreatedUser();
+        prepareCreatedUser();
+
+        // When / Then
+        mockMvc.perform(get("/user/all").contentType(contentType)).andExpect(status().isOk());
+    }
+
+    @Test
+    public void getOne_userPresent_respondsWithOk() throws Exception {
+        // Given
+        User user = prepareCreatedUser();
+
+        // When/Then
+        mockMvc.perform(get("/user/" + user.getId()).contentType(contentType)).andExpect(status().isOk());
+    }
+
+    @Test
+    public void update_userPresent_respondsWithOk() throws Exception {
+        // Given
+        User user = prepareCreatedUser();
+        user.setLastName(Randoms.randomAlphanumeric("lastName_"));
+
+        // When/Then
+        mockMvc.perform(put("/user/").contentType(contentType).content(json(user))).andExpect(status().isOk());
+    }
+
+    @Test
+    public void delete_userPresent_respondsWithOk() throws Exception {
+        // Given
+        User user = prepareCreatedUser();
+
+        // When/Then
+        mockMvc.perform(delete("/user/" + user.getId()).contentType(contentType)).andExpect(status().isOk());
+    }
+
+    private User prepareCreatedUser() throws Exception {
+        String userJson = json(Users.random());
+        MvcResult mvcResult = mockMvc.perform(post("/user/").contentType(contentType).content(userJson)).andExpect(status().isOk()).andReturn();
+        return fromJson(mvcResult.getResponse().getContentAsString());
     }
 
     protected String json(Object o) throws IOException {
